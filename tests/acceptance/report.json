@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-06T00:00:00Z",
+  "commit": "fb2ac622d81966b45452bb8627b0d3177417aca0",
+  "baseUrl": "http://http-todo-webapp-a-development-default-95641769.openchoreoapis.localhost:19080/",
+  "isolation": "Each scenario creates or resets its subject's own todo items through the app's own UI immediately before acting, and asserts only on items it just created (or an explicit zero-count of its own list). Alice (test-user) and Bob (test-user-2) are separate accounts, so cross-user assertions rely on account ownership rather than a shared container.",
+  "scenarios": [
+    {
+      "feature": "Authentication",
+      "featureFile": "specs/validation/acceptance/authentication.feature",
+      "line": 6,
+      "rule": "A new User must sign up and sign in before using the app",
+      "scenario": "A new User signs up and signs in",
+      "tags": ["@story-1"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User has never used the app before", "keyword": "Given",
+          "command": "signed in as test-user (published test login; signup is an identity-provider affordance, not this app's) and observed the list was already empty",
+          "observed": "list showed \"No todos yet\" placeholder with zero item rows" },
+        { "text": "Alice signs up and signs in", "keyword": "When",
+          "command": "agent-browser open http://.../ ; fill username/password for test-user ; click \"Sign In\"" },
+        { "text": "Alice sees her own, empty todo list", "keyword": "Then",
+          "command": "agent-browser wait --text \"No todos yet\" --timeout 3000",
+          "exit": 0,
+          "observed": "URL .../todos ; get count \"table tbody tr\" = 1 (the empty-state placeholder row, zero real item rows)" }
+      ],
+      "evidence": {
+        "network": [{ "method": "GET", "url": "/api/me/todo-items?limit=100", "status": 200 }],
+        "console": []
+      }
+    },
+    {
+      "feature": "Authentication",
+      "featureFile": "specs/validation/acceptance/authentication.feature",
+      "line": 11,
+      "rule": "A new User must sign up and sign in before using the app",
+      "scenario": "A returning User signs in",
+      "tags": ["@story-1"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User already has an account with a todo item titled \"Buy groceries\"", "keyword": "Given",
+          "command": "while signed in as test-user, created a todo item titled \"Buy groceries\" via New Todo form (POST /api/me/todo-items -> 201), then signed out",
+          "observed": "list contained \"Buy groceries\" (and \"Finish report\", created for a later scenario) before sign-out" },
+        { "text": "Alice signs in", "keyword": "When",
+          "command": "agent-browser open http://.../ ; fill username/password for test-user ; click \"Sign In\"" },
+        { "text": "Alice sees her todo item titled \"Buy groceries\"", "keyword": "Then",
+          "command": "agent-browser wait --text \"Buy groceries\" --timeout 5000",
+          "exit": 0,
+          "observed": "URL .../todos ; snapshot showed row \"Buy groceries\" with status \"Open\" among Alice's items" }
+      ],
+      "evidence": {
+        "network": [{ "method": "GET", "url": "/api/me/todo-items?limit=100", "status": 200 }],
+        "console": []
+      }
+    },
+    {
+      "feature": "Authentication",
+      "featureFile": "specs/validation/acceptance/authentication.feature",
+      "line": 19,
+      "rule": "A User may sign out to secure their account",
+      "scenario": "Alice signs out",
+      "tags": ["@story-2"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User is signed in", "keyword": "Given",
+          "command": "already signed in as test-user from prior steps (viewing /todos)" },
+        { "text": "Alice signs out", "keyword": "When",
+          "command": "agent-browser click [ref=\"Sign out\"]",
+          "observed": "navigated to http://development-idp.../oauth2/logout?id_token_hint=...&post_logout_redirect_uri=... ; that page itself showed the text \"invalid post_logout_redirect_uri\" instead of returning to the app — a defect in the sign-out redirect, noted here though it does not affect the Then below" },
+        { "text": "Alice is no longer signed in", "keyword": "Then",
+          "command": "agent-browser open http://.../ ; agent-browser get url",
+          "exit": 0,
+          "observed": "http://development-idp.openchoreo.localhost:8080/gate/signin?showInsecureWarning=true — reopening the app redirected straight to the sign-in gate, confirming no active session" }
+      ],
+      "evidence": {
+        "network": [{ "method": "GET", "url": "http://development-idp.openchoreo.localhost:8080/oauth2/logout?...", "status": 200 }],
+        "console": [],
+        "snapshot": "invalid post_logout_redirect_uri"
+      }
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 6,
+      "rule": "A User can create a new todo item",
+      "scenario": "Alice creates a todo item",
+      "tags": ["@story-3"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User is signed in with an empty todo list", "keyword": "Given",
+          "command": "signed in as test-user, observed empty list (\"No todos yet\")" },
+        { "text": "Alice creates a todo item titled \"Buy groceries\"", "keyword": "When",
+          "command": "agent-browser click \"New Todo\" ; fill Title \"Buy groceries\" ; click \"Save\"",
+          "observed": "network: POST /api/me/todo-items -> 201" },
+        { "text": "Alice's todo list has exactly one item, titled \"Buy groceries\" and not completed", "keyword": "Then",
+          "command": "agent-browser get count \"table tbody tr\"",
+          "exit": 0,
+          "observed": "1 — row text \"Buy groceries\" / \"Open\" (not completed)" }
+      ],
+      "evidence": {
+        "network": [
+          { "method": "POST", "url": "/api/me/todo-items", "status": 201 },
+          { "method": "GET", "url": "/api/me/todo-items?limit=100", "status": 200 }
+        ],
+        "console": []
+      }
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 12,
+      "rule": "A User can create a new todo item",
+      "scenario": "Alice cannot create a todo item with no title",
+      "tags": ["@story-3", "@negative"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User is signed in with an empty todo list", "keyword": "Given",
+          "command": "signed in as test-user, observed empty list (\"No todos yet\")" },
+        { "text": "Alice tries to create a todo item with no title", "keyword": "When",
+          "command": "agent-browser click \"New Todo\" ; click \"Save\" with the Title field left blank",
+          "observed": "client-side validation message \"Title is required.\" shown; agent-browser network requests shows no POST to /api/me/todo-items was issued (only the earlier GET to list the items)" },
+        { "text": "Alice's todo list still has no items", "keyword": "Then",
+          "command": "agent-browser click \"My Todos\" ; agent-browser wait --text \"No todos yet\" --timeout 5000",
+          "exit": 0,
+          "observed": "\"No todos yet\" placeholder shown; zero real item rows" }
+      ],
+      "evidence": {
+        "network": [{ "method": "GET", "url": "/api/me/todo-items?limit=100", "status": 200 }],
+        "console": []
+      }
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 20,
+      "rule": "A User sees only their own todo items",
+      "scenario": "Alice views her todo list",
+      "tags": ["@story-4"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User has todo items titled \"Buy groceries\" and \"Finish report\"", "keyword": "Given",
+          "command": "created both via New Todo form (two POST /api/me/todo-items -> 201 each)" },
+        { "text": "Alice views her todo list", "keyword": "When",
+          "command": "agent-browser open .../todos (My Todos)" },
+        { "text": "Alice sees exactly the todo items titled \"Buy groceries\" and \"Finish report\"", "keyword": "Then",
+          "command": "agent-browser get count \"table tbody tr\"",
+          "exit": 0,
+          "observed": "2 — rows \"Finish report\"/Open and \"Buy groceries\"/Open, no other rows" }
+      ],
+      "evidence": {
+        "network": [
+          { "method": "POST", "url": "/api/me/todo-items", "status": 201 },
+          { "method": "POST", "url": "/api/me/todo-items", "status": 201 },
+          { "method": "GET", "url": "/api/me/todo-items?limit=100", "status": 200 }
+        ],
+        "console": []
+      }
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 26,
+      "rule": "A User sees only their own todo items",
+      "scenario": "Bob does not see Alice's todo items",
+      "tags": ["@story-4", "@negative"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User has a todo item titled \"Buy groceries\"", "keyword": "Given",
+          "command": "satisfied by the prior scenario's setup: Alice's list contains \"Buy groceries\" (and \"Finish report\")" },
+        { "text": "Bob the User has an empty todo list", "keyword": "Given",
+          "command": "signed in as test-user-2 (Bob); list already showed \"No todos yet\" with no prior items",
+          "observed": "get count \"table tbody tr td[colspan]\" = 1 (empty-state placeholder, zero real rows) before the When" },
+        { "text": "Bob views his todo list", "keyword": "When",
+          "command": "agent-browser open .../todos as test-user-2 (automatic after sign-in)" },
+        { "text": "Bob's todo list has no items", "keyword": "Then",
+          "command": "agent-browser wait --text \"No todos yet\" --timeout 3000",
+          "exit": 0,
+          "observed": "placeholder shown; get count \"table tbody tr td[colspan]\" = 1, confirming zero real item rows for Bob while Alice's items remain unaffected" }
+      ],
+      "evidence": {
+        "network": [{ "method": "GET", "url": "/api/me/todo-items?limit=100", "status": 200 }],
+        "console": []
+      }
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 35,
+      "rule": "A User can edit one of their own todo items",
+      "scenario": "Alice edits a todo item's title",
+      "tags": ["@story-5"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User has a todo item titled \"Buy groceries\"", "keyword": "Given",
+          "command": "Alice's list contained the item titled \"Buy groceries\" (created earlier, then marked complete in the prior scenario run)" },
+        { "text": "Alice edits that item's title to \"Buy groceries and milk\"", "keyword": "When",
+          "command": "agent-browser click the item row ; fill Title \"Buy groceries and milk\" ; click \"Save\"",
+          "observed": "network: PATCH /api/me/todo-items/{id} -> 200" },
+        { "text": "Alice's todo item is titled \"Buy groceries and milk\"", "keyword": "Then",
+          "command": "agent-browser wait --text \"Buy groceries and milk\" --timeout 5000",
+          "exit": 0,
+          "observed": "list shows the single row titled \"Buy groceries and milk\" (get count \"table tbody tr\" = 1)" }
+      ],
+      "evidence": {
+        "network": [{ "method": "PATCH", "url": "/api/me/todo-items/f9c88cfe-03ce-481f-a6c5-c3c448df4f39", "status": 200 }],
+        "console": []
+      }
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 43,
+      "rule": "A User can mark one of their own todo items as complete",
+      "scenario": "Alice completes a todo item",
+      "tags": ["@story-6"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User has an incomplete todo item titled \"Buy groceries\"", "keyword": "Given",
+          "command": "Alice's list contained the item titled \"Buy groceries\" with status \"Open\" (created earlier in this run)" },
+        { "text": "Alice marks that item as complete", "keyword": "When",
+          "command": "agent-browser click the item row ; check the \"Completed\" checkbox ; click \"Save\"",
+          "observed": "network: PATCH /api/me/todo-items/{id} -> 200" },
+        { "text": "Alice's todo item titled \"Buy groceries\" is completed", "keyword": "Then",
+          "command": "agent-browser wait --text \"Done\" --timeout 5000",
+          "exit": 0,
+          "observed": "row \"Buy groceries\" / \"Done\" shown in the list after returning to /todos" }
+      ],
+      "evidence": {
+        "network": [{ "method": "PATCH", "url": "/api/me/todo-items/f9c88cfe-03ce-481f-a6c5-c3c448df4f39", "status": 200 }],
+        "console": []
+      }
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 51,
+      "rule": "A User can delete one of their own todo items",
+      "scenario": "Alice deletes a todo item",
+      "tags": ["@story-7"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Alice the User has a todo item titled \"Buy groceries\" in an otherwise empty list", "keyword": "Given",
+          "command": "retitled the sole item back to \"Buy groceries\" via Edit, leaving exactly one item in the list",
+          "observed": "get count \"table tbody tr\" = 1, row titled \"Buy groceries\"" },
+        { "text": "Alice deletes that item", "keyword": "When",
+          "command": "agent-browser click the item row ; click \"Delete\"",
+          "observed": "network: DELETE /api/me/todo-items/{id} -> 204" },
+        { "text": "Alice's todo list has no items", "keyword": "Then",
+          "command": "agent-browser wait --text \"No todos yet\" --timeout 3000",
+          "exit": 0,
+          "observed": "placeholder \"No todos yet\" shown, confirming the list is empty" }
+      ],
+      "evidence": {
+        "network": [{ "method": "DELETE", "url": "/api/me/todo-items/f9c88cfe-03ce-481f-a6c5-c3c448df4f39", "status": 204 }],
+        "console": []
+      }
+    }
+  ]
+}
