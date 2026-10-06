@@ -25,7 +25,7 @@ A simple todo web application where each person signs in with their own account 
 ## Product Decisions
 
 - Sign-in is via SSO through Thunder, the platform IDP (organization default).
-- Self-service enrolment is enabled: a new user signs themselves up and signs in directly — this app describes people who sign themselves up. *assumed*
+- Self-service enrolment is enabled: a new user signs themselves up and signs in directly — this app describes people who sign themselves up.
 - Todos are personal only — no sharing, assignment, or collaboration between users.
 - Every signed-in user has the same single role; there is no admin or elevated actor.
 - The core todo feature set is basic CRUD plus completion — no due dates, priorities, categories, or tags.
