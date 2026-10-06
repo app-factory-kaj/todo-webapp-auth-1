@@ -7,11 +7,52 @@
   "appPath": "todo-webapp",
   "entrypoint": "deployment/web-application",
   "exposure": "internet",
-  "dependencies": [
-    { "kind": "component", "name": "todo-api", "description": "Lists, creates, updates, completes and deletes the signed-in user's todo items." },
-    { "kind": "platform-resource", "name": "user-auth", "resourceType": "thunder-app" }
+  "stories": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
   ],
   "description": "The single-page app a User signs into to manage their private todo list: create, view, edit, complete, and delete items. Holds no todo data itself — every item lives behind todo-api, scoped to the signed-in caller.",
-  "stories": [1, 2, 3, 4, 5, 6, 7],
-  "skillsPinned": ["wireframes", "react-webapp", "oxygen-ui-design-system", "thunder-authentication"]
+  "dependencies": [
+    {
+      "kind": "component",
+      "name": "todo-api",
+      "description": "Lists, creates, updates, completes and deletes the signed-in user's todo items.",
+      "wiring": {
+        "endpoint": {
+          "component": "todo-webapp-auth-1-todo-api",
+          "name": "http",
+          "visibility": "project",
+          "envBindings": {
+            "address": "TODO_API_URL"
+          }
+        }
+      }
+    },
+    {
+      "kind": "platform-resource",
+      "name": "user-auth",
+      "resourceType": "thunder-app",
+      "wiring": {
+        "ref": "todo-webapp-auth-ecd98d1d",
+        "envBindings": {
+          "client_id": "USER_AUTH_CLIENT_ID",
+          "issuer": "USER_AUTH_ISSUER",
+          "jwks_url": "USER_AUTH_JWKS_URL",
+          "resource": "USER_AUTH_RESOURCE",
+          "scopes": "USER_AUTH_SCOPES"
+        }
+      }
+    }
+  ],
+  "skillsPinned": [
+    "wireframes",
+    "react-webapp",
+    "oxygen-ui-design-system",
+    "thunder-authentication"
+  ]
 }
